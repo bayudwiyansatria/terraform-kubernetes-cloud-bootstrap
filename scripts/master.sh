@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -eu
+FEATURE_GATES=${FEATURE_GATES:-}
+POD_NETWORK_CIDR=${POD_NETWORK_CIDR:-}
 
 # Initialize Cluster
 if [[ -n "${FEATURE_GATES}" ]]; then

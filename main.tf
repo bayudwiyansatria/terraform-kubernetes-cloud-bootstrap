@@ -3,6 +3,16 @@ locals {
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
+# Container
+#-----------------------------------------------------------------------------------------------------------------------
+module "docker" {
+  count           = var.docker_enabled ? 1 : 0
+  source          = "git::ssh://git@github.com/bayudwiyansatria/terraform-docker.git"
+  server_ips      = concat(var.master_host, var.worker_host)
+  ssh_private_key = var.ssh_private_key
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
 # Kubernetes
 #-----------------------------------------------------------------------------------------------------------------------
 resource "null_resource" "bootstrap" {
@@ -10,7 +20,7 @@ resource "null_resource" "bootstrap" {
   connection {
     host        = local.hosts[count.index]
     type        = "ssh"
-    private_key = file(var.ssh_private_key)
+    private_key = var.ssh_private_key
   }
 
   provisioner "file" {
@@ -28,6 +38,10 @@ resource "null_resource" "bootstrap" {
       "KUBERNETES_VERSION=${var.kubernetes_version} FEATURE_GATES=${var.feature_gates} bash /root/bootstrap.sh"
     ]
   }
+
+  depends_on = [
+    module.docker
+  ]
 }
 
 resource "null_resource" "bootstrap_master" {
@@ -35,7 +49,7 @@ resource "null_resource" "bootstrap_master" {
   connection {
     host        = var.master_host[count.index]
     type        = "ssh"
-    private_key = file(var.ssh_private_key)
+    private_key = var.ssh_private_key
   }
 
   provisioner "file" {
@@ -66,7 +80,7 @@ resource "null_resource" "bootstrap_worker" {
   connection {
     host        = var.worker_host[count.index]
     type        = "ssh"
-    private_key = file(var.ssh_private_key)
+    private_key = var.ssh_private_key
   }
 
   provisioner "file" {
@@ -100,7 +114,7 @@ resource "null_resource" "bootstrap_worker" {
 resource "null_resource" "calico" {
   connection {
     host        = var.master_host[0]
-    private_key = file(var.ssh_private_key)
+    private_key = var.ssh_private_key
   }
 
   provisioner "remote-exec" {
