@@ -32,8 +32,8 @@ for development and testing purposes.
 ```shell
 module "kubernetes" {
   source          = "bayudwiyansatria/bootstrap/kubernetes"
-  master_host     = module.master.ips
-  worker_host     = module.worker.ips
+  master_host     = var.master_host
+  worker_host     = var.worker_host
   ssh_private_key = var.cluster_admin_ssh_access
 }
 ```
