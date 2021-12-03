@@ -7,8 +7,9 @@ locals {
 #-----------------------------------------------------------------------------------------------------------------------
 module "docker" {
   count           = var.docker_enabled ? 1 : 0
-  source          = "git::ssh://git@github.com/bayudwiyansatria/terraform-docker.git"
-  server_ips      = concat(var.master_host, var.worker_host)
+  source          = "bayudwiyansatria/bootstrap/docker"
+  version         = "1.0.0"
+  server_ips      = local.hosts
   ssh_private_key = var.ssh_private_key
 }
 

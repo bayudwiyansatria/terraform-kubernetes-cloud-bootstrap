@@ -40,6 +40,7 @@ List here all the items you have verified BEFORE sending this PR. Please DO NOT 
 <!-- Recommended
 Add a checklist of things that are required to be reviewed in order to have the PR approved
 -->
+
 - [ ]
 
 ## How to test this PR locally
@@ -58,7 +59,8 @@ Link related issues below. Insert the issue link or reference after the word "Cl
 - Requires #123
 - Superseds #123
 -->
-- 
+
+-
 
 ## Use cases
 

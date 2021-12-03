@@ -4,6 +4,7 @@
 variable "docker_enabled" {
   type        = bool
   description = "Enable Docker"
+  default     = true
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -23,7 +24,6 @@ variable "worker_host" {
 variable "ssh_private_key" {
   type        = string
   description = "SSH Private Key"
-  default     = "~/.ssh/id_rsa"
 }
 
 variable "kubernetes_version" {
