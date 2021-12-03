@@ -12,8 +12,5 @@ else
 fi
 systemctl enable kubelet
 
-# used to join nodes to the cluster
-kubeadm token create --print-join-command > /tmp/kubeadm_join
-
 mkdir -p "$HOME/.kube"
 cp /etc/kubernetes/admin.conf "${HOME}/.kube/config"

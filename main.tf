@@ -2,6 +2,65 @@ locals {
   hosts = concat(var.master_host, var.worker_host)
 }
 
+resource "local_file" "ssh_private_key" {
+  content         = var.ssh_private_key
+  filename        = "${path.module}/secrets/ssh_private_key"
+  file_permission = "600"
+}
+
+resource "null_resource" "print_join_token" {
+  triggers = {
+    run = timestamp()
+  }
+
+  connection {
+    host        = var.master_host[0]
+    type        = "ssh"
+    private_key = var.ssh_private_key
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "kubeadm token create --print-join-command > /tmp/kubeadm_join"
+    ]
+  }
+
+  depends_on = [
+    null_resource.bootstrap_master
+  ]
+}
+
+resource "null_resource" "bootstrap_cluster" {
+  count = length(var.worker_host)
+  connection {
+    host        = var.master_host[0]
+    type        = "ssh"
+    private_key = var.ssh_private_key
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/secrets/ssh_private_key"
+    destination = "/tmp/ssh_private_key"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /tmp/ssh_private_key"
+    ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/ssh_private_key /tmp/kubeadm_join root@${var.worker_host[count.index]}:/tmp/kubeadm_join"
+    ]
+  }
+
+  depends_on = [
+    local_file.ssh_private_key,
+    null_resource.print_join_token
+  ]
+}
+
 #-----------------------------------------------------------------------------------------------------------------------
 # Container
 #-----------------------------------------------------------------------------------------------------------------------
@@ -89,7 +148,6 @@ resource "null_resource" "bootstrap_worker" {
     destination = "/root/worker.sh"
   }
 
-
   provisioner "remote-exec" {
     inline = [
       "KUBERNETES_VERSION=${var.kubernetes_version} bash /root/worker.sh"
@@ -99,12 +157,13 @@ resource "null_resource" "bootstrap_worker" {
   provisioner "remote-exec" {
     inline = [
       "rm -rf /root/bootstrap.sh",
-      "rm -rf /root/worker.sh"
+      "rm -rf /root/worker.sh",
+      "rm -rf /tmp/kubeadm_join"
     ]
   }
 
   depends_on = [
-    null_resource.bootstrap_master
+    null_resource.bootstrap_cluster
   ]
 }
 
