@@ -1,11 +1,25 @@
-locals {
-  hosts = concat(var.master_host, var.worker_host)
+#-----------------------------------------------------------------------------------------------------------------------
+# Operations
+#-----------------------------------------------------------------------------------------------------------------------
+resource "local_file" "ssh_private_key" {
+  sensitive_content = var.ssh_private_key
+  filename          = "${path.module}/secrets/ssh_private_key.pem"
+  file_permission   = "0400"
 }
 
-resource "local_file" "ssh_private_key" {
-  content         = var.ssh_private_key
-  filename        = "${path.module}/secrets/ssh_private_key"
-  file_permission = "600"
+resource "null_resource" "get_kube_config" {
+  provisioner "local-exec" {
+    command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${local_file.ssh_private_key.filename} root@${var.master_host[0]}:/etc/kubernetes/admin.conf ${path.module}/secrets/admin.conf"
+  }
+
+  triggers = {
+    run = timestamp()
+  }
+
+  depends_on = [
+    local_file.ssh_private_key,
+    null_resource.bootstrap_master
+  ]
 }
 
 resource "null_resource" "print_join_token" {
@@ -30,6 +44,20 @@ resource "null_resource" "print_join_token" {
   ]
 }
 
+#-----------------------------------------------------------------------------------------------------------------------
+# Container
+#-----------------------------------------------------------------------------------------------------------------------
+module "docker" {
+  count           = var.docker_enabled ? 1 : 0
+  source          = "bayudwiyansatria/bootstrap/docker"
+  version         = "1.0.0"
+  server_ips      = local.hosts
+  ssh_private_key = var.ssh_private_key
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Kubernetes
+#-----------------------------------------------------------------------------------------------------------------------
 resource "null_resource" "bootstrap_cluster" {
   count = length(var.worker_host)
   connection {
@@ -39,7 +67,7 @@ resource "null_resource" "bootstrap_cluster" {
   }
 
   provisioner "file" {
-    source      = "${path.module}/secrets/ssh_private_key"
+    source      = local_file.ssh_private_key.filename
     destination = "/tmp/ssh_private_key"
   }
 
@@ -55,26 +83,18 @@ resource "null_resource" "bootstrap_cluster" {
     ]
   }
 
+  provisioner "remote-exec" {
+    inline = [
+      "rm -rf /tmp/ssh_private_key"
+    ]
+  }
+
   depends_on = [
     local_file.ssh_private_key,
     null_resource.print_join_token
   ]
 }
 
-#-----------------------------------------------------------------------------------------------------------------------
-# Container
-#-----------------------------------------------------------------------------------------------------------------------
-module "docker" {
-  count           = var.docker_enabled ? 1 : 0
-  source          = "bayudwiyansatria/bootstrap/docker"
-  version         = "1.0.0"
-  server_ips      = local.hosts
-  ssh_private_key = var.ssh_private_key
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Kubernetes
-#-----------------------------------------------------------------------------------------------------------------------
 resource "null_resource" "bootstrap" {
   count = length(local.hosts)
   connection {
