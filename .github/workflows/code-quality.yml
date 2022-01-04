@@ -1,0 +1,26 @@
+name: Code Quality
+on:
+  push:
+  pull_request:
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+    - id: fmt
+      name: Format Code Style
+      run: terraform fmt -diff -check -no-color -recursive
+      continue-on-error: true
+    - id: init
+      name: Init
+      run: terraform init
+    - id: validate
+      name: Validate
+      run: terraform validate -no-color
+      

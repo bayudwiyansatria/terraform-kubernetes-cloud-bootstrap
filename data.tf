@@ -1,5 +1,5 @@
 data "local_file" "kube_config" {
-  filename   = "${path.module}/secrets/admin.conf"
+  filename = "${path.module}/secrets/admin.conf"
   depends_on = [
     null_resource.get_kube_config
   ]
@@ -7,7 +7,7 @@ data "local_file" "kube_config" {
 
 data "template_file" "kube_config" {
   template = file("${path.module}/templates/kubeconfig.yaml.tpl")
-  vars     = {
+  vars = {
     CLUSTER_NAME     = local.cluster_name
     CLUSTER_CA_DATA  = local.cluster_ca_data
     CLUSTER_ENDPOINT = local.cluster_endpoint
