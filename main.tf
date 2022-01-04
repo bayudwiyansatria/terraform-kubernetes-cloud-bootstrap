@@ -7,6 +7,19 @@ resource "local_file" "ssh_private_key" {
   file_permission   = "0400"
 }
 
+resource "null_resource" "kube_config" {
+  triggers = {
+    config_file            = data.template_file.kube_config.rendered
+    host                   = local.cluster_endpoint
+    cluster_ca_certificate = local.cluster_ca_data
+    client_crt_data        = local.cluster_client_data
+    client_key             = local.cluster_client_key
+  }
+  depends_on = [
+    data.template_file.kube_config
+  ]
+}
+
 resource "null_resource" "get_kube_config" {
   provisioner "local-exec" {
     command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${local_file.ssh_private_key.filename} root@${var.master_host[0]}:/etc/kubernetes/admin.conf ${path.module}/secrets/admin.conf"
